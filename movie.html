@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer-when-downgrade">
+  <title>Кино.тҷ — Смотреть фильм</title>
+  <meta name="description" content="Смотрите фильмы онлайн на Кино.тҷ — всего за 1 сомонӣ.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="detail-page">
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="logo" href="index.html" aria-label="Кино.тҷ — Главная">
+        <span class="logo__main">Кино</span><span class="logo__accent">.тҷ</span>
+      </a>
+
+      <button id="menuToggle" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="siteNav">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="siteNav" aria-label="Основная навигация">
+        <a href="index.html">Асосӣ</a>
+        <a href="index.html#catalog">Каталог</a>
+        <a href="index.html#favorites">Дӯстдоштаҳо <span id="favoritesCount" class="badge">0</span></a>
+        <button id="authBtn" class="btn btn-primary" type="button" aria-label="Вход в аккаунт" style="min-height:40px;padding:.6rem 1.2rem;font-size:.9rem">Войти</button>
+      </nav>
+
+      <div id="userProfile" class="user-profile" style="display:none;">
+        <span id="userPhone" class="user-phone"></span>
+        <button id="logoutBtn" class="btn btn-secondary btn-small" type="button">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal" style="display:none;">
+    <div class="modal__content">
+      <button id="closeModal" class="modal__close" type="button" aria-label="Закрыть">✕</button>
+      <div id="loginForm" class="form-section">
+        <div class="auth-icon">🔐</div>
+        <h2>Хуш омадед!</h2>
+        <p class="auth-subtitle">Ба аккаунти худ ворид шавед</p>
+        <div id="loginSuccess" class="success-message" style="display:none;"></div>
+        <form id="loginFormElement">
+          <div class="form-group">
+            <label for="loginPhone">📱 Рақами телефон</label>
+            <input type="tel" id="loginPhone" placeholder="+992 XX XXX XX XX" required autocomplete="tel">
+            <small class="error-text" id="loginPhoneError"></small>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">🔑 Парол</label>
+            <div class="password-wrapper">
+              <input type="password" id="loginPassword" placeholder="Пароли худро ворид кунед" required autocomplete="current-password">
+              <button type="button" class="password-toggle" data-target="loginPassword" aria-label="Нишон додани парол">👁</button>
+            </div>
+            <small class="error-text" id="loginPasswordError"></small>
+          </div>
+          <button type="submit" class="btn btn-primary btn-auth-submit" style="width:100%;">Ворид шудан →</button>
+        </form>
+        <p class="form-toggle">Аккаунт надоред? <button type="button" id="switchToRegister" class="link-btn">Бақайдгирӣ ✦</button></p>
+      </div>
+      <div id="registerForm" class="form-section" style="display:none;">
+        <div class="auth-icon">✨</div>
+        <h2>Аккаунти нав</h2>
+        <p class="auth-subtitle">Бақайдгирӣ шавед ва аз филмҳо лаззат баред</p>
+        <form id="registerFormElement">
+          <div class="form-group">
+            <label for="registerName">👤 Номи шумо</label>
+            <input type="text" id="registerName" placeholder="Масалан: Алишер" required autocomplete="name">
+            <small class="error-text" id="registerNameError"></small>
+          </div>
+          <div class="form-group">
+            <label for="registerPhone">📱 Рақами телефон</label>
+            <input type="tel" id="registerPhone" placeholder="+992 XX XXX XX XX" required autocomplete="tel">
+            <small class="error-text" id="registerPhoneError"></small>
+          </div>
+          <div class="form-group">
+            <label for="registerPassword">🔑 Парол</label>
+            <div class="password-wrapper">
+              <input type="password" id="registerPassword" placeholder="Ҳадди ақал 6 рамз" required autocomplete="new-password">
+              <button type="button" class="password-toggle" data-target="registerPassword" aria-label="Нишон додани парол">👁</button>
+            </div>
+            <div class="password-strength" id="passwordStrength">
+              <div class="password-strength__bar"><div class="password-strength__fill" id="passwordStrengthFill"></div></div>
+              <span class="password-strength__label" id="passwordStrengthLabel"></span>
+            </div>
+            <small class="error-text" id="registerPasswordError"></small>
+          </div>
+          <div class="form-group">
+            <label for="registerPasswordConfirm">🔑 Тасдиқи парол</label>
+            <div class="password-wrapper">
+              <input type="password" id="registerPasswordConfirm" placeholder="Паролро такрор кунед" required autocomplete="new-password">
+              <button type="button" class="password-toggle" data-target="registerPasswordConfirm" aria-label="Нишон додани парол">👁</button>
+            </div>
+            <small class="error-text" id="registerPasswordConfirmError"></small>
+          </div>
+          <button type="submit" class="btn btn-primary btn-auth-submit" style="width:100%;">Бақайдгирӣ ✦</button>
+        </form>
+        <p class="form-toggle">Аккаунт доред? <button type="button" id="switchToLogin" class="link-btn">Ворид шавед →</button></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Modal -->
+  <div id="paymentModal" class="modal payment-modal" style="display:none;">
+    <div class="modal__content">
+      <button id="closePaymentModal" class="modal__close" type="button" aria-label="Закрыть">✕</button>
+      <div id="paymentStep1">
+        <div class="payment-header">
+          <span class="payment-header__icon">🎬</span>
+          <h2>Доступ к фильму</h2>
+          <p>Оплатите и смотрите прямо сейчас</p>
+        </div>
+        <div class="payment-movie-info">
+          <img id="payMoviePoster" src="" alt="Постер фильма">
+          <div class="payment-movie-info__text">
+            <div class="payment-movie-info__title" id="payMovieTitle">—</div>
+            <div class="payment-movie-info__meta" id="payMovieMeta">—</div>
+          </div>
+        </div>
+        <div class="payment-price-block">
+          <span class="payment-price">1 сомонӣ</span>
+          <span class="payment-price-note">Разовый доступ · Смотрите сколько угодно</span>
+        </div>
+        <div class="payment-methods">
+          <button class="payment-method-btn active" data-method="eskhata">🏦 Эсхата</button>
+          <button class="payment-method-btn" data-method="alif">💳 Алиф</button>
+          <button class="payment-method-btn" data-method="vasl">📱 Васл</button>
+        </div>
+        <button id="confirmPayBtn" class="btn btn-primary btn-pay">Оплатить 1 сомонӣ →</button>
+        <p class="payment-secure">🔒 Безопасная оплата · Мгновенный доступ</p>
+      </div>
+      <div id="paymentStep2" style="display:none;">
+        <div class="payment-processing">
+          <div class="payment-processing__spinner"></div>
+          <p>Обрабатываем оплату...</p>
+        </div>
+      </div>
+      <div id="paymentStep3" style="display:none;">
+        <div class="payment-success">
+          <span class="payment-success__icon">✅</span>
+          <h3>Оплата прошла!</h3>
+          <p>Переходим к просмотру...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <a href="index.html" class="btn btn-secondary" style="min-height:42px;padding:.6rem 1.2rem;font-size:.9rem;" aria-label="Вернуться на главную">← Назад к каталогу</a>
+      </div>
+    </section>
+
+    <section class="section movie-detail fade-in" aria-labelledby="movieTitle">
+      <div class="movie-detail__media">
+        <div id="moviePlayerWrapper">
+          <!-- Video or paywall rendered here by JS -->
+          <video
+            id="moviePlayer"
+            controls
+            playsinline
+            preload="metadata"
+            poster=""
+            aria-label="Видеоплеер фильма"
+            style="display:none;"
+          >
+            Ваш браузер не поддерживает воспроизведение видео.
+          </video>
+        </div>
+      </div>
+
+      <div class="movie-detail__content">
+        <span class="badge">▶ Смотрим</span>
+        <h1 id="movieTitle">Загрузка фильма...</h1>
+        <div id="movieMeta" aria-live="polite">Год · Жанр · Длительность · Рейтинг</div>
+        <p id="movieDescription">Здесь появится описание выбранного фильма.</p>
+        <div id="movieGenre" aria-label="Жанры фильма"></div>
+        <div class="hero-actions" style="margin-top:1.5rem;">
+          <button id="movieFavoriteBtn" class="btn btn-secondary" type="button">♡ В избранное</button>
+          <a href="index.html#catalog" class="btn btn-secondary">← Другие фильмы</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="relatedTitle">
+      <div class="section-head">
+        <h2 id="relatedTitle">Похожие фильмы</h2>
+        <p style="color:var(--text-muted);font-size:.9rem;margin:0">Подборка в том же жанре</p>
+      </div>
+      <section id="relatedMovies" class="related-grid" aria-live="polite" aria-label="Похожие фильмы"></section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

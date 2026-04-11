@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кино.тҷ — Панели идоракунӣ</title>
+  <meta name="description" content="Панели идоракунии Кино.тҷ — URL: /admin/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../admin.css">
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body class="admin-body">
+
+  <div id="adminLoginScreen" class="ap-login">
+    <div class="ap-login__card">
+      <div class="ap-login__logo">Кино<span>.тҷ</span></div>
+      <h1 class="ap-login__title">Панели идоракунӣ</h1>
+      <p class="ap-login__note">Логин: <strong>admin</strong> · Парол: <strong>123456</strong> ё <strong>kino2026</strong><br>
+        (ё рақами телефон ба охири <strong>500500200</strong>)</p>
+      <form id="adminLoginForm" class="ap-login__form">
+        <div class="form-group">
+          <label for="adminLogin">Логин</label>
+          <input type="text" id="adminLogin" placeholder="admin" required autocomplete="username">
+          <small class="error-text" id="adminLoginError"></small>
+        </div>
+        <div class="form-group">
+          <label for="adminPass">Парол</label>
+          <div class="password-wrapper">
+            <input type="password" id="adminPass" placeholder="••••••" required autocomplete="current-password">
+            <button type="button" class="password-toggle" onclick="toggleAdminPass()" aria-label="Нишон додани парол">👁</button>
+          </div>
+          <small class="error-text" id="adminPassError"></small>
+        </div>
+        <button type="submit" class="btn btn-primary btn-auth-submit ap-login__btn">Ворид шудан</button>
+      </form>
+      <a class="ap-login__back" href="../index.html">← Бозгашт ба сайт</a>
+    </div>
+  </div>
+
+  <div id="adminDashboard" class="admin-dashboard ap-shell" style="display:none;">
+    <aside class="ap-sidebar" aria-label="Меню">
+      <a class="ap-brand" href="../index.html">
+        <span class="logo__main">Кино</span><span class="logo__accent">.тҷ</span>
+        <span class="admin-badge">ADMIN</span>
+      </a>
+      <nav class="admin-tabs ap-side-nav" aria-label="Бахшҳо">
+        <button type="button" class="admin-tab active" data-tab="tabUsers">Корбарон</button>
+        <button type="button" class="admin-tab" data-tab="tabMovies">Филмҳо</button>
+        <button type="button" class="admin-tab" data-tab="tabTransactions">Пардохтҳо</button>
+        <button type="button" class="admin-tab" data-tab="tabReports">Ҳисоботҳо</button>
+      </nav>
+      <a class="ap-sidebar__link" href="../index.html">← Сомонаи асосӣ</a>
+    </aside>
+
+    <div class="ap-main">
+      <header class="admin-header ap-topbar">
+        <div class="admin-header__inner">
+          <span class="ap-topbar__title">Идоракунӣ</span>
+          <div class="admin-header__right">
+            <label class="sr-only" for="adminQuickSearch">Ҷустуҷӯ</label>
+            <input type="search" id="adminQuickSearch" class="admin-header__search-input" placeholder="Ҷустуҷӯ дар бахш…" autocomplete="off">
+            <span class="admin-header__user">Админ</span>
+            <button id="adminLogoutBtn" class="btn btn-secondary btn-small" type="button">Баромадан</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="ap-scroll">
+        <section class="admin-stats fade-in">
+          <div class="stat-card stat-card--users">
+            <div class="stat-card__icon">👥</div>
+            <div class="stat-card__info">
+              <span class="stat-card__value" id="statTotalUsers">0</span>
+              <span class="stat-card__label">Ҳамаи бақайдшуда</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card--regular">
+            <div class="stat-card__icon">🎫</div>
+            <div class="stat-card__info">
+              <span class="stat-card__value" id="statRegularUsers">0</span>
+              <span class="stat-card__label">Корбарони одӣ</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card--admins">
+            <div class="stat-card__icon">🛡️</div>
+            <div class="stat-card__info">
+              <span class="stat-card__value" id="statAdminUsers">0</span>
+              <span class="stat-card__label">Админҳо</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card--today">
+            <div class="stat-card__icon">📅</div>
+            <div class="stat-card__info">
+              <span class="stat-card__value" id="statTodayUsers">0</span>
+              <span class="stat-card__label">Имрӯз бақайд</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card--paid">
+            <div class="stat-card__icon">💰</div>
+            <div class="stat-card__info">
+              <span class="stat-card__value" id="statPaidMovies">0</span>
+              <span class="stat-card__label">Амалҳои пардохт</span>
+              <span class="stat-card__hint" id="statUniquePayersHint">фардӣ: 0</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card--views">
+            <div class="stat-card__icon">👁️</div>
+            <div class="stat-card__info">
+              <span class="stat-card__value" id="statWatchPlays">0</span>
+              <span class="stat-card__label">Оғози тамошо</span>
+              <span class="stat-card__hint" id="statWatchPagesHint">саҳифа: 0</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card--movies">
+            <div class="stat-card__icon">🎬</div>
+            <div class="stat-card__info">
+              <span class="stat-card__value" id="statMoviesCount">12</span>
+              <span class="stat-card__label">Филмҳо</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-section fade-in" id="tabUsers">
+          <div class="admin-section__head">
+            <h2>Корбарон</h2>
+            <div class="admin-section__actions">
+              <div class="admin-search">
+                <input type="search" id="userSearchInput" placeholder="Ҷустуҷӯ…" autocomplete="off">
+                <select id="userRoleFilter" class="admin-select">
+                  <option value="all">Ҳама нақшҳо</option>
+                  <option value="admin">Админҳо</option>
+                  <option value="user">Корбарон</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-small" id="addUserBtn" type="button">+ Корбари нав</button>
+              <button class="btn btn-secondary btn-small" id="exportUsersBtn" type="button">Экспорт</button>
+            </div>
+          </div>
+          <div class="admin-table-wrapper">
+            <table class="admin-table" id="usersTable">
+              <thead>
+                <tr>
+                  <th class="th-id">#</th>
+                  <th class="th-name sortable" data-sort="name">Ном ↕</th>
+                  <th class="th-phone">Телефон</th>
+                  <th class="th-role">Нақш</th>
+                  <th class="th-date sortable" data-sort="date">Сана ↕</th>
+                  <th class="th-actions">Амалҳо</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+            <div id="emptyUsersState" class="admin-empty" style="display:none;">
+              <span class="admin-empty__icon">📭</span>
+              <p>Корбар нест</p>
+            </div>
+          </div>
+          <div class="admin-table-footer">
+            <span id="usersCountLabel">0 корбар</span>
+            <button class="btn btn-red btn-small" id="deleteAllUsersBtn" type="button">Ҳамаро нест кунед</button>
+          </div>
+        </section>
+
+        <section class="admin-section fade-in" id="tabMovies" style="display:none;">
+          <div class="admin-section__head">
+            <h2>Филмҳо</h2>
+            <div class="admin-section__actions">
+              <div class="admin-search">
+                <input type="search" id="movieSearchInput" placeholder="Ҷустуҷӯи филм…" autocomplete="off">
+              </div>
+              <button class="btn btn-primary btn-small" id="addMovieBtn" type="button">+ Филм</button>
+              <button class="btn btn-secondary btn-small" id="exportMoviesBtn" type="button">Экспорт</button>
+            </div>
+          </div>
+          <div class="admin-table-wrapper">
+            <table class="admin-table" id="moviesTable">
+              <thead>
+                <tr>
+                  <th class="th-id">#</th>
+                  <th class="th-poster">Акс</th>
+                  <th class="th-title sortable-movie" data-sort="title">Ном ↕</th>
+                  <th class="th-genre">Жанр</th>
+                  <th class="th-rating">Рейтинг</th>
+                  <th class="th-stats">Пардохт</th>
+                  <th class="th-stats">Боздид</th>
+                  <th class="th-stats">Тамошо</th>
+                  <th class="th-actions">Амалҳо</th>
+                </tr>
+              </thead>
+              <tbody id="moviesTableBody"></tbody>
+            </table>
+            <div id="emptyMoviesState" class="admin-empty" style="display:none;">
+              <span class="admin-empty__icon">🎬</span>
+              <p>Филм ёфт нашуд</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-section fade-in" id="tabTransactions" style="display:none;">
+          <div class="admin-section__head">
+            <h2>Пардохтҳо</h2>
+            <div class="admin-section__actions">
+              <div class="admin-search">
+                <input type="search" id="transSearchInput" placeholder="Ҷустуҷӯ…" autocomplete="off">
+              </div>
+              <button class="btn btn-secondary btn-small" id="exportTransBtn" type="button">Экспорт</button>
+            </div>
+          </div>
+          <div class="admin-table-wrapper">
+            <table class="admin-table" id="transTable">
+              <thead>
+                <tr>
+                  <th class="th-id">#</th>
+                  <th class="th-user">Ном</th>
+                  <th class="th-phone">Телефон</th>
+                  <th class="th-movie">Филм</th>
+                  <th class="th-amount">Маблағ</th>
+                  <th class="th-date">Сана</th>
+                </tr>
+              </thead>
+              <tbody id="transTableBody"></tbody>
+            </table>
+            <div id="emptyTransState" class="admin-empty" style="display:none;">
+              <span class="admin-empty__icon">💸</span>
+              <p>Пардохт нест</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-section fade-in" id="tabReports" style="display:none;">
+          <div class="admin-section__head">
+            <h2>Ҳисоботҳо</h2>
+            <div class="admin-section__actions">
+              <div class="admin-search admin-search--grow">
+                <input type="search" id="reportSearchInput" placeholder="Ҷустуҷӯ…" autocomplete="off">
+                <select id="reportKindFilter" class="admin-select">
+                  <option value="all">Ҳама намудҳо</option>
+                  <option value="page">Боздиди саҳифа</option>
+                  <option value="play">Оғози тамошо</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary btn-small" id="exportWatchBtn" type="button">Экспорт тамошо</button>
+            </div>
+          </div>
+          <p class="admin-report-intro">Сабтҳои тамошо пас аз пардохт.</p>
+          <div class="admin-table-wrapper">
+            <table class="admin-table" id="watchReportTable">
+              <thead>
+                <tr>
+                  <th class="th-id">#</th>
+                  <th>Корбар</th>
+                  <th>Телефон</th>
+                  <th>Филм</th>
+                  <th>Намуд</th>
+                  <th class="th-date">Сана</th>
+                </tr>
+              </thead>
+              <tbody id="watchReportTableBody"></tbody>
+            </table>
+            <div id="emptyWatchReportState" class="admin-empty" style="display:none;">
+              <span class="admin-empty__icon">👁️</span>
+              <p>Сабт нест</p>
+            </div>
+          </div>
+          <h3 class="admin-subsection-title">Мухтасар</h3>
+          <div class="admin-table-wrapper">
+            <table class="admin-table" id="movieSummaryTable">
+              <thead>
+                <tr>
+                  <th class="th-id">#</th>
+                  <th class="th-poster">Акс</th>
+                  <th>Филм</th>
+                  <th>Пардохтҳо</th>
+                  <th>Боздид</th>
+                  <th>Тамошо</th>
+                </tr>
+              </thead>
+              <tbody id="movieSummaryTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="editUserModal" class="modal" style="display:none;">
+    <div class="modal__content">
+      <button class="modal__close" type="button" onclick="closeEditModal()" aria-label="Пӯшидан">✕</button>
+      <div class="auth-icon">✏️</div>
+      <h2 id="editModalTitle">Тағйири корбар</h2>
+      <form id="editUserForm">
+        <input type="hidden" id="editUserId">
+        <div class="form-group">
+          <label for="editUserName">Ном</label>
+          <input type="text" id="editUserName" placeholder="Ном" required>
+          <small class="error-text" id="editNameError"></small>
+        </div>
+        <div class="form-group">
+          <label for="editUserPhone">Телефон</label>
+          <input type="tel" id="editUserPhone" placeholder="+992…" required>
+          <small class="error-text" id="editPhoneError"></small>
+        </div>
+        <div class="form-group">
+          <label for="editUserPassword">Парол (нав)</label>
+          <div class="password-wrapper">
+            <input type="password" id="editUserPassword" placeholder="Холӣ = без иваз">
+            <button type="button" class="password-toggle" onclick="toggleEditPass()" aria-label="Нишон додани парол">👁</button>
+          </div>
+          <small class="admin-hint">Холӣ гузоред, агар тағйир нахохед</small>
+        </div>
+        <div class="form-group-row">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Нигоҳ доштан</button>
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Бекор</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="addUserModal" class="modal" style="display:none;">
+    <div class="modal__content">
+      <button class="modal__close" type="button" onclick="closeAddModal()" aria-label="Пӯшидан">✕</button>
+      <div class="auth-icon">➕</div>
+      <h2>Корбари нав</h2>
+      <p class="auth-subtitle">Аз панел илова мекунед</p>
+      <form id="addUserForm">
+        <div class="form-group">
+          <label for="addUserName">Ном</label>
+          <input type="text" id="addUserName" required>
+          <small class="error-text" id="addNameError"></small>
+        </div>
+        <div class="form-group">
+          <label for="addUserPhone">Телефон</label>
+          <input type="tel" id="addUserPhone" required>
+          <small class="error-text" id="addPhoneError"></small>
+        </div>
+        <div class="form-group">
+          <label for="addUserPassword">Парол</label>
+          <div class="password-wrapper">
+            <input type="password" id="addUserPassword" required>
+            <button type="button" class="password-toggle" onclick="toggleAddPass()" aria-label="Нишон додани парол">👁</button>
+          </div>
+          <small class="error-text" id="addPasswordError"></small>
+        </div>
+        <div class="form-group-row">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Илова</button>
+          <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Бекор</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="movieReportModal" class="modal" style="display:none;">
+    <div class="modal__content" style="max-width:600px;width:100%;">
+      <button class="modal__close" type="button" onclick="closeReportModal()" aria-label="Пӯшидан">✕</button>
+      <div class="auth-icon">📊</div>
+      <h2 id="reportModalTitle">Ҳисоботи филм</h2>
+      <p class="auth-subtitle">Пардохт ва тамошо</p>
+      <h3 class="modal-table-title">Пардохтҳо</h3>
+      <div class="admin-table-wrapper modal-table-scroll">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="th-id">#</th>
+              <th>Корбар</th>
+              <th>Телефон</th>
+              <th>Сана</th>
+            </tr>
+          </thead>
+          <tbody id="movieReportTableBody"></tbody>
+        </table>
+        <div id="emptyReportState" class="admin-empty" style="display:none;padding:1rem;">
+          <p>Харид нест</p>
+        </div>
+      </div>
+      <h3 class="modal-table-title">Тамошо</h3>
+      <div class="admin-table-wrapper modal-table-scroll">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="th-id">#</th>
+              <th>Корбар</th>
+              <th>Телефон</th>
+              <th>Намуд</th>
+              <th>Сана</th>
+            </tr>
+          </thead>
+          <tbody id="movieWatchReportTableBody"></tbody>
+        </table>
+        <div id="emptyWatchMovieState" class="admin-empty" style="display:none;padding:1rem;">
+          <p>Сабти тамошо нест</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Movie Edit/Add Modal -->
+  <div id="movieEditModal" class="modal" style="display:none;">
+    <div class="modal__content" style="max-width:720px;width:100%;">
+      <button class="modal__close" type="button" onclick="closeMovieModal()" aria-label="Пӯшидан">✕</button>
+      <div class="auth-icon">🎬</div>
+      <h2 id="movieModalTitle">Филм</h2>
+      <p class="auth-subtitle">Илова ё тағйири филм (YouTube ҳам мешавад)</p>
+      <form id="movieEditForm">
+        <input type="hidden" id="movieEditId">
+        <div class="form-group">
+          <label for="movieTitleInput">Ном</label>
+          <input type="text" id="movieTitleInput" required>
+          <small class="error-text" id="movieTitleError"></small>
+        </div>
+        <div class="form-group">
+          <label for="movieGenreInput">Жанр</label>
+          <input type="text" id="movieGenreInput" placeholder="Action / Drama / Sci‑Fi..." required>
+          <small class="error-text" id="movieGenreError"></small>
+        </div>
+        <div class="form-group">
+          <label for="movieRatingInput">Рейтинг</label>
+          <input type="number" id="movieRatingInput" min="0" max="10" step="0.1" placeholder="8.4">
+        </div>
+        <div class="form-group">
+          <label for="movieYearInput">Сол</label>
+          <input type="number" id="movieYearInput" min="1900" max="2100" placeholder="2024">
+        </div>
+        <div class="form-group">
+          <label for="movieDurationInput">Давомнокӣ</label>
+          <input type="text" id="movieDurationInput" placeholder="2h 11m">
+        </div>
+        <div class="form-group">
+          <label for="movieImageInput">Ссылка на постер</label>
+          <input type="url" id="movieImageInput" placeholder="https://...jpg">
+        </div>
+        <div class="form-group">
+          <label for="movieVideoInput">Ссылка на видео (mp4/webm) или YouTube</label>
+          <input type="url" id="movieVideoInput" placeholder="https://youtu.be/ID или https://...mp4">
+          <small class="admin-hint">YouTube: watch?v=..., youtu.be/..., shorts/... — плеер дар movie.html худкор мешавад.</small>
+        </div>
+        <div class="form-group">
+          <label for="movieDescInput">Тавсиф</label>
+          <textarea id="movieDescInput" rows="4" placeholder="Описание..."></textarea>
+        </div>
+        <div class="form-group-row">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Нигоҳ доштан</button>
+          <button type="button" class="btn btn-secondary" onclick="closeMovieModal()">Бекор</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="confirmDeleteModal" class="modal" style="display:none;">
+    <div class="modal__content modal__content--small">
+      <div class="confirm-delete">
+        <span class="confirm-delete__icon">⚠️</span>
+        <h3>Нест кардан?</h3>
+        <p id="confirmDeleteText">Тасдиқ кунед</p>
+        <div class="form-group-row" style="margin-top:1.5rem;">
+          <button class="btn btn-red" id="confirmDeleteYes" style="flex:1;">Нест</button>
+          <button class="btn btn-secondary" onclick="closeConfirmModal()">Не</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminToast" class="admin-toast" style="display:none;"></div>
+
+  <script src="../script.js"></script>
+  <script src="../admin.js"></script>
+</body>
+</html>

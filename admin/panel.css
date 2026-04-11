@@ -1,0 +1,233 @@
+/* Кино.тҷ — панели /admin/ (нақшаи нав) */
+
+.admin-body {
+  font-family: "Outfit", system-ui, sans-serif;
+}
+
+/* --- Вуруд --- */
+.ap-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(56, 189, 248, 0.12), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(244, 180, 41, 0.08), transparent 50%),
+    linear-gradient(165deg, #0c0e14 0%, #07080d 100%);
+}
+
+.ap-login__card {
+  width: min(100%, 400px);
+  padding: 2.25rem;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(18, 22, 32, 0.95), rgba(10, 12, 18, 0.98));
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 32px 80px rgba(0, 0, 0, 0.55);
+}
+
+.ap-login__logo {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.35rem;
+  color: var(--text, #e8eaef);
+}
+
+.ap-login__logo span {
+  color: #38bdf8;
+}
+
+.ap-login__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text, #e8eaef);
+}
+
+.ap-login__note {
+  margin: 0 0 1.5rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-muted, #9aa3b2);
+}
+
+.ap-login__note strong {
+  color: #7dd3fc;
+  font-weight: 700;
+}
+
+.ap-login__btn {
+  width: 100%;
+  margin-top: 0.25rem;
+  background: linear-gradient(135deg, #0ea5e9, #0369a1) !important;
+  border: none !important;
+  box-shadow: 0 8px 28px rgba(14, 165, 233, 0.35);
+}
+
+.ap-login__back {
+  display: block;
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.88rem;
+  color: #7dd3fc;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ap-login__back:hover {
+  text-decoration: underline;
+}
+
+/* --- Нақша: sidebar + асосӣ --- */
+.ap-shell {
+  display: none;
+  min-height: 100vh;
+  grid-template-columns: 252px minmax(0, 1fr);
+  background: var(--bg, #07080d);
+}
+
+.ap-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem 1rem;
+  background: linear-gradient(180deg, #0f1219 0%, #0a0c12 100%);
+  border-right: 1px solid rgba(56, 189, 248, 0.12);
+}
+
+.ap-brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  padding: 0.35rem 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ap-brand .admin-badge {
+  margin-left: 0;
+}
+
+.ap-side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.ap-side-nav .admin-tab {
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  padding: 0.75rem 1rem !important;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text-muted, #9aa3b2) !important;
+}
+
+.ap-side-nav .admin-tab:hover {
+  border-color: rgba(56, 189, 248, 0.25) !important;
+  color: var(--text, #e8eaef) !important;
+}
+
+.ap-side-nav .admin-tab.active {
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.18), transparent) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  color: #7dd3fc !important;
+  box-shadow: none !important;
+}
+
+.ap-sidebar__link {
+  margin-top: auto;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  text-decoration: none;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  text-align: center;
+  transition: background 0.2s;
+}
+
+.ap-sidebar__link:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.ap-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+.ap-topbar .admin-header__inner {
+  border-bottom-color: rgba(56, 189, 248, 0.15);
+}
+
+.ap-topbar__title {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text-muted, #9aa3b2);
+  letter-spacing: -0.02em;
+}
+
+.ap-scroll {
+  flex: 1;
+  padding: 1.25rem 1.5rem 2.5rem;
+  overflow-x: auto;
+}
+
+.ap-scroll .admin-stats {
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.ap-scroll .admin-section {
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+@media (max-width: 960px) {
+  .ap-shell {
+      grid-template-columns: 1fr;
+    }
+
+  .ap-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.12);
+  }
+
+  .ap-side-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .ap-side-nav .admin-tab {
+    flex: 1 1 auto;
+    min-width: 120px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .ap-sidebar__link {
+    margin-top: 0;
+    flex: 1 1 100%;
+  }
+}
