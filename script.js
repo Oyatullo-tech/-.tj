@@ -63,6 +63,24 @@ let movies = loadMoviesFromStorage() || DEFAULT_MOVIES.slice();
 window.movies = movies;
 window.saveMoviesToStorage = saveMoviesToStorage;
 
+// Load movies from backend seamlessly
+async function syncMoviesFromAPI() {
+  try {
+    const response = await fetch('/api/movies');
+    if (response.ok) {
+      const data = await response.json();
+      const sanitized = sanitizeMovies(data);
+      if (sanitized && sanitized.length > 0) {
+        movies = sanitized;
+        window.movies = movies;
+        saveMoviesToStorage(movies);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not sync movies from API", e);
+  }
+}
+
 /* Плейсхолдер агар URL постера кушода нашавад (file://, блоки ҷустӯҷӯ) */
 var POSTER_FALLBACK =
   "data:image/svg+xml," +
@@ -161,6 +179,21 @@ function getAllUsers() {
   catch(e) { return []; }
 }
 function saveAllUsers(users) { localStorage.setItem(USERS_DB_KEY, JSON.stringify(users)); }
+
+async function syncUsersFromAPI() {
+  try {
+    const response = await fetch('/api/users');
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        saveAllUsers(data);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not sync users from API", e);
+  }
+}
+
 function findUserByPhone(phone) {
   var normalized = normalizePhone(phone);
   return getAllUsers().find(function(u){ return normalizePhone(u.phone) === normalized; }) || null;
@@ -345,33 +378,57 @@ function handleLogin(e) {
   if (!password) { if (passErr) passErr.textContent = "Паролро ворид кунед"; ok = false; }
   if (!ok) return;
 
-  // Find user in database
+  // Disable button to prevent double-submit while checking API
+  var submitBtn = document.querySelector("#loginFormElement button[type=submit]");
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Тафтиш..."; }
+
+  function tryLoginWithUser(user) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Ворид шудан"; }
+    if (!user) {
+      if (phErr) phErr.textContent = "Ин рақам бақайд нашудааст. Аввал бақайдгирӣ шавед.";
+      return;
+    }
+    // Check password
+    var hashedInput = simpleHash(password);
+    if (user.passwordHash !== hashedInput) {
+      if (passErr) passErr.textContent = "Парол нодуруст аст";
+      return;
+    }
+    // Save session
+    saveUser({
+      phone: user.phone,
+      name: user.name,
+      registeredAt: user.registeredAt,
+      loggedInAt: new Date().toISOString()
+    });
+    var modal = document.getElementById("authModal");
+    var cb = modal ? modal._onSuccess : null;
+    hideAuthModal(); updateAuthUI();
+    clearPaidMoviesCache();
+    loadAccessStateForCurrentUser().finally(function () {
+      refreshFavoriteButtons();
+      renderHero();
+      renderMovieDetail();
+    });
+    if (typeof cb === "function") setTimeout(cb, 300);
+  }
+
+  // First try localStorage (fast path)
   var user = findUserByPhone(phone);
-  if (!user) {
+  if (user) {
+    tryLoginWithUser(user);
+    return;
+  }
+
+  // User not found in localStorage — sync from API first, then retry
+  // This handles fresh browsers where localStorage is empty
+  syncUsersFromAPI().then(function() {
+    var userAfterSync = findUserByPhone(phone);
+    tryLoginWithUser(userAfterSync);
+  }).catch(function() {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Ворид шудан"; }
     if (phErr) phErr.textContent = "Ин рақам бақайд нашудааст. Аввал бақайдгирӣ шавед.";
-    return;
-  }
-
-  // Check password
-  var hashedInput = simpleHash(password);
-  if (user.passwordHash !== hashedInput) {
-    if (passErr) passErr.textContent = "Парол нодуруст аст";
-    return;
-  }
-
-  // Save session
-  saveUser({
-    phone: user.phone,
-    name: user.name,
-    registeredAt: user.registeredAt,
-    loggedInAt: new Date().toISOString()
   });
-
-  var modal = document.getElementById("authModal");
-  var cb = modal ? modal._onSuccess : null;
-  hideAuthModal(); updateAuthUI();
-  showNotification("✓ Хуш омадед, " + (user.name || formatPhoneDisplay(user.phone)) + "!");
-  if (typeof cb === "function") setTimeout(cb, 300);
 }
 
 /* ── Handle Register ── */
@@ -430,36 +487,61 @@ function handleRegister(e) {
 
   if (!ok) return;
 
-  // Save to user database
-  var users = getAllUsers();
-  var newUser = {
-    id: Date.now(),
-    name: name,
-    phone: normalizePhone(phone),
-    passwordHash: simpleHash(password),
-    registeredAt: new Date().toISOString()
-  };
-  users.push(newUser);
-  saveAllUsers(users);
+  // Save to backend API instead of just local
+  var passwordHash = simpleHash(password);
+  fetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, phone: phone, passwordHash: passwordHash })
+  }).then(r => r.json()).then(data => {
+    if (data && !data.error) {
+      var users = getAllUsers();
+      // Only add to local if not fetched again yet
+      if (!findUserByPhone(phone)) {
+        users.push(data);
+        saveAllUsers(users);
+      }
+      syncUsersFromAPI();
+    }
+  }).catch(() => {
+    // Fallback to local
+    var users = getAllUsers();
+    var newUser = {
+      id: Date.now(),
+      name: name,
+      phone: normalizePhone(phone),
+      passwordHash: passwordHash,
+      registeredAt: new Date().toISOString()
+    };
+    users.push(newUser);
+    saveAllUsers(users);
+  });
 
+  var users = getAllUsers();
   // Auto-login after registration
   saveUser({
-    phone: newUser.phone,
-    name: newUser.name,
-    registeredAt: newUser.registeredAt,
+    phone: normalizePhone(phone),
+    name: name,
+    registeredAt: new Date().toISOString(),
     loggedInAt: new Date().toISOString()
   });
 
   var modal = document.getElementById("authModal");
   var cb = modal ? modal._onSuccess : null;
   hideAuthModal(); updateAuthUI();
+  clearPaidMoviesCache();
+  loadAccessStateForCurrentUser().finally(function () {
+    refreshFavoriteButtons();
+    renderHero();
+    renderMovieDetail();
+  });
   showNotification("✓ Хуш омадед, " + name + "! Аккаунт сохта шуд.");
   if (typeof cb === "function") setTimeout(cb, 300);
 }
 
 /* ── Logout ── */
 function handleLogout() {
-  removeUser(); updateAuthUI();
+  removeUser(); clearPaidMoviesCache(); updateAuthUI();
   showNotification("Шумо аз аккаунт баромадед");
 }
 
@@ -536,19 +618,140 @@ function setupAuth() {
     if (e.key === "Escape") { hideAuthModal(); hidePaymentModal(); }
   });
   updateAuthUI();
+  loadAccessStateForCurrentUser();
 }
 
 /* ================================================================
    PAYMENT SYSTEM
    ================================================================ */
-function getPaidMovies()      { try { const s = localStorage.getItem(PAID_KEY); const p = s ? JSON.parse(s) : []; return Array.isArray(p) ? p : []; } catch { return []; } }
-function savePaidMovies(list) { localStorage.setItem(PAID_KEY, JSON.stringify(list)); }
-function isPaid(movieId)      { return getPaidMovies().includes(movieId); }
+var _serverPaidMovies = [];
+var _paidMoviesPhone = null;
+var _paidMoviesLoaded = false;
+var _serverPendingMovies = [];
+var _pendingMoviesPhone = null;
+var _pendingMoviesLoaded = false;
+var _purchaseRequestId = null;
+
+function clearPaidMoviesCache() {
+  _serverPaidMovies = [];
+  _paidMoviesPhone = null;
+  _paidMoviesLoaded = false;
+  _serverPendingMovies = [];
+  _pendingMoviesPhone = null;
+  _pendingMoviesLoaded = false;
+}
+
+function loadPaidMoviesForCurrentUser() {
+  var user = getUser();
+  if (!user || !user.phone) {
+    clearPaidMoviesCache();
+    return Promise.resolve([]);
+  }
+  if (_paidMoviesPhone !== user.phone) {
+    // Prevent using payments from previous account before new fetch completes.
+    _serverPaidMovies = [];
+    _paidMoviesPhone = user.phone;
+    _paidMoviesLoaded = false;
+  }
+  if (_paidMoviesPhone === user.phone && _paidMoviesLoaded && Array.isArray(_serverPaidMovies)) {
+    return Promise.resolve(_serverPaidMovies);
+  }
+  return fetch('/api/paid-movies?phone=' + encodeURIComponent(user.phone), {
+    headers: { 'Accept': 'application/json' }
+  })
+    .then(function(response) {
+      if (!response.ok) return [];
+      return response.json();
+    })
+    .then(function(data) {
+      _serverPaidMovies = Array.isArray(data) ? data.map(function(id){ return Number(id); }).filter(function(id){ return !Number.isNaN(id); }) : [];
+      _paidMoviesPhone = user.phone;
+      _paidMoviesLoaded = true;
+      return _serverPaidMovies;
+    })
+    .catch(function() {
+      _serverPaidMovies = [];
+      _paidMoviesPhone = user.phone;
+      _paidMoviesLoaded = true;
+      return _serverPaidMovies;
+    });
+}
+
+function loadPendingMoviesForCurrentUser() {
+  var user = getUser();
+  if (!user || !user.phone) {
+    _serverPendingMovies = [];
+    _pendingMoviesPhone = null;
+    _pendingMoviesLoaded = false;
+    return Promise.resolve([]);
+  }
+  if (_pendingMoviesPhone !== user.phone) {
+    _serverPendingMovies = [];
+    _pendingMoviesPhone = user.phone;
+    _pendingMoviesLoaded = false;
+  }
+  if (_pendingMoviesPhone === user.phone && _pendingMoviesLoaded && Array.isArray(_serverPendingMovies)) {
+    return Promise.resolve(_serverPendingMovies);
+  }
+  return fetch('/api/pending-movies?phone=' + encodeURIComponent(user.phone), {
+    headers: { 'Accept': 'application/json' }
+  })
+    .then(function(response) {
+      if (!response.ok) return [];
+      return response.json();
+    })
+    .then(function(data) {
+      _serverPendingMovies = Array.isArray(data) ? data.map(function(id){ return Number(id); }).filter(function(id){ return !Number.isNaN(id); }) : [];
+      _pendingMoviesPhone = user.phone;
+      _pendingMoviesLoaded = true;
+      return _serverPendingMovies;
+    })
+    .catch(function() {
+      _serverPendingMovies = [];
+      _pendingMoviesPhone = user.phone;
+      _pendingMoviesLoaded = true;
+      return _serverPendingMovies;
+    });
+}
+
+function loadAccessStateForCurrentUser() {
+  return Promise.all([loadPaidMoviesForCurrentUser(), loadPendingMoviesForCurrentUser()]);
+}
+
+function getLocalPaidMovies() { try { const s = localStorage.getItem(PAID_KEY); const p = s ? JSON.parse(s) : []; return Array.isArray(p) ? p : []; } catch { return []; } }
+function saveLocalPaidMovies(list) { localStorage.setItem(PAID_KEY, JSON.stringify(list)); }
+function getPaidMovies() {
+  var user = getUser();
+  if (user && user.phone) {
+    if (_paidMoviesPhone !== user.phone) return [];
+    return _serverPaidMovies.slice();
+  }
+  return getLocalPaidMovies();
+}
+function isPaid(movieId) {
+  var user = getUser();
+  if (user && user.phone) {
+    if (_paidMoviesPhone !== user.phone) return false;
+    return _serverPaidMovies.includes(movieId);
+  }
+  return getLocalPaidMovies().includes(movieId);
+}
+function isPending(movieId) {
+  var user = getUser();
+  if (!user || !user.phone) return false;
+  if (_pendingMoviesPhone !== user.phone) return false;
+  return _serverPendingMovies.includes(movieId);
+}
+function getMovieAccessLabel(movieId) {
+  if (isPaid(movieId)) return "▶ Смотреть";
+  if (isPending(movieId)) return "⏳ На проверке";
+  return "🔒 1 сомонӣ";
+}
 function markAsPaid(movieId)  { 
-  const list = getPaidMovies(); 
+  const list = getLocalPaidMovies(); 
   if (!list.includes(movieId)) { 
     list.push(movieId); 
-    savePaidMovies(list); 
+    saveLocalPaidMovies(list); 
   }
   // Store transaction for admin panel
   try {
@@ -568,6 +771,7 @@ function markAsPaid(movieId)  {
 
 var _paymentMovieId  = null;
 var _paymentCallback = null;
+var _purchaseStatusPoller = null;
 
 function showPaymentModal(movie, onSuccess) {
   _paymentMovieId  = movie.id;
@@ -583,6 +787,8 @@ function showPaymentModal(movie, onSuccess) {
   if (s1) s1.style.display = "block";
   if (s2) s2.style.display = "none";
   if (s3) s3.style.display = "none";
+  var receiptInput = document.getElementById("paymentReceiptInput");
+  if (receiptInput) receiptInput.value = "";
 
   // fill movie info
   var poster = document.getElementById("payMoviePoster");
@@ -618,6 +824,57 @@ function hidePaymentModal() {
   _paymentCallback = null;
 }
 
+function clearPurchasePoller() {
+  if (_purchaseStatusPoller) {
+    clearTimeout(_purchaseStatusPoller);
+    _purchaseStatusPoller = null;
+  }
+}
+
+function pollPurchaseStatus(requestId, movieId, callback, attempts) {
+  if (!requestId) return;
+  attempts = typeof attempts === "number" ? attempts : 0;
+  if (attempts >= 18) {
+    showNotification("Время ожидания одобрения истекло. Обновите страницу позже.");
+    return;
+  }
+
+  fetch('/api/purchase-status?request_id=' + encodeURIComponent(requestId))
+    .then(function(response) {
+      return response.json().then(function(data) {
+        return { status: response.status, data: data };
+      });
+    })
+    .then(function(result) {
+      if (result.status === 200 && result.data && result.data.status === 'approved') {
+        clearPurchasePoller();
+        _serverPendingMovies = _serverPendingMovies.filter(function(id){ return id !== movieId; });
+        if (!_serverPaidMovies.includes(movieId)) {
+          _serverPaidMovies.push(movieId);
+        }
+        markAsPaid(movieId);
+        refreshFavoriteButtons();
+        renderHero();
+        renderMovieDetail();
+        showNotification('Покупка одобрена — доступ открыт');
+        if (typeof callback === 'function') {
+          callback(movieId);
+        } else {
+          window.location.href = 'movie.html?id=' + movieId;
+        }
+        return;
+      }
+      _purchaseStatusPoller = setTimeout(function() {
+        pollPurchaseStatus(requestId, movieId, callback, attempts + 1);
+      }, 5000);
+    })
+    .catch(function() {
+      _purchaseStatusPoller = setTimeout(function() {
+        pollPurchaseStatus(requestId, movieId, callback, attempts + 1);
+      }, 5000);
+    });
+}
+
 function processPayment() {
   var s1 = document.getElementById("paymentStep1");
   var s2 = document.getElementById("paymentStep2");
@@ -625,27 +882,87 @@ function processPayment() {
   if (s1) s1.style.display = "none";
   if (s2) s2.style.display = "block";
 
-  // simulate processing delay
-  setTimeout(function(){
+  var movie = getMovieById(_paymentMovieId);
+  var user = getUser();
+  if (!movie || !user || !user.phone) {
+    showNotification('Невозможно создать заявку. Пожалуйста, войдите и повторите снова.');
     if (s2) s2.style.display = "none";
     if (s3) s3.style.display = "block";
-
-    if (_paymentMovieId !== null) {
-      markAsPaid(_paymentMovieId);
+    if (s3) {
+      s3.querySelector('h3').textContent = 'Ошибка';
+      s3.querySelector('p').textContent = 'Требуется авторизация.';
     }
+    return;
+  }
 
-    var cb = _paymentCallback;
-    var movieId = _paymentMovieId;
+  var payload = {
+    movieId: movie.id,
+    movieTitle: movie.title,
+    name: user.name || '',
+    phone: user.phone
+  };
+  var receiptInput = document.getElementById("paymentReceiptInput");
+  var receiptFile = receiptInput && receiptInput.files ? receiptInput.files[0] : null;
+  if (!receiptFile) {
+    if (s2) s2.style.display = "none";
+    if (s1) s1.style.display = "block";
+    showNotification('Пожалуйста, загрузите чек оплаты.');
+    return;
+  }
+  var formData = new FormData();
+  formData.append('movieId', String(payload.movieId));
+  formData.append('movieTitle', payload.movieTitle);
+  formData.append('name', payload.name);
+  formData.append('phone', payload.phone);
+  formData.append('receipt', receiptFile);
 
-    setTimeout(function(){
-      hidePaymentModal();
-      if (typeof cb === "function") {
-        cb(movieId);
+  fetch('/api/purchase-request', {
+    method: 'POST',
+    body: formData
+  })
+    .then(function(response) {
+      return response.json().then(function(data) {
+        return { status: response.status, data: data };
+      });
+    })
+    .then(function(result) {
+      if (result.status === 200 && result.data && result.data.requestId) {
+        _purchaseRequestId = result.data.requestId;
+        if (s2) s2.style.display = "none";
+        if (s3) s3.style.display = "block";
+        if (s3) {
+          s3.querySelector('h3').textContent = 'Заявка отправлена!';
+          s3.querySelector('p').textContent = 'Ожидайте одобрения администратора.';
+        }
+        if (!_serverPendingMovies.includes(movie.id)) {
+          _serverPendingMovies.push(movie.id);
+          _pendingMoviesPhone = user.phone;
+          _pendingMoviesLoaded = true;
+        }
+        refreshFavoriteButtons();
+        renderHero();
+        renderMovieDetail();
+        showNotification('Запрос отправлен. Проверьте Telegram администратора.');
+        pollPurchaseStatus(_purchaseRequestId, movie.id, _paymentCallback);
       } else {
-        window.location.href = "movie.html?id=" + movieId;
+        if (s2) s2.style.display = "none";
+        if (s3) s3.style.display = "block";
+        if (s3) {
+          s3.querySelector('h3').textContent = 'Ошибка';
+          s3.querySelector('p').textContent = result.data && result.data.error ? result.data.error : 'Не удалось отправить заявку.';
+        }
+        showNotification(result.data && result.data.error ? result.data.error : 'Ошибка отправки заявки');
       }
-    }, 1400);
-  }, 2000);
+    })
+    .catch(function() {
+      if (s2) s2.style.display = "none";
+      if (s3) s3.style.display = "block";
+      if (s3) {
+        s3.querySelector('h3').textContent = 'Ошибка';
+        s3.querySelector('p').textContent = 'Сервер не отвечает. Попробуйте позже.';
+      }
+      showNotification('Сервер не отвечает. Попробуйте позже.');
+    });
 }
 
 function setupPaymentModal() {
@@ -669,15 +986,19 @@ function handleWatchClick(movieId) {
     return;
   }
 
-  // 2) check payment
-  if (isPaid(movieId)) {
-    window.location.href = "movie.html?id=" + movieId;
-    return;
-  }
-
-  // 3) show payment modal
-  showPaymentModal(movie, function(){
-    window.location.href = "movie.html?id=" + movieId;
+  // 2) refresh access state from server before checking
+  loadAccessStateForCurrentUser().then(function(){
+    if (isPaid(movieId)) {
+      window.location.href = "movie.html?id=" + movieId;
+      return;
+    }
+    if (isPending(movieId)) {
+      showNotification('Платеж на проверке: заявка уже отправлена.');
+      return;
+    }
+    showPaymentModal(movie, function(){
+      window.location.href = "movie.html?id=" + movieId;
+    });
   });
 }
 
@@ -758,7 +1079,7 @@ function createMovieCard(movie) {
   var paid     = isPaid(movie.id);
   var favLabel = isFavorite(movie.id) ? "Убрать из избранного" : "Добавить в избранное";
   var favIcon  = isFavorite(movie.id) ? "♥" : "♡";
-  var watchLabel = paid ? "▶ Смотреть" : "🔒 1 сомонӣ";
+  var watchLabel = getMovieAccessLabel(movie.id);
 
   card.innerHTML = `
     <div class="movie-card__poster">
@@ -814,7 +1135,7 @@ function refreshFavoriteButtons() {
   // update watch buttons
   document.querySelectorAll("[data-watch-id]").forEach(function(btn){
     var id = Number(btn.getAttribute("data-watch-id"));
-    btn.textContent = isPaid(id) ? "▶ Смотреть" : "🔒 1 сомонӣ";
+    btn.textContent = getMovieAccessLabel(id);
   });
 }
 
@@ -854,7 +1175,8 @@ function renderHero() {
   }
 
   if (watchBtn) {
-    watchBtn.textContent = isPaid(featured.id) ? "▶ Смотреть" : "🔒 1 сомонӣ — Смотреть";
+    var label = getMovieAccessLabel(featured.id);
+    watchBtn.textContent = label === "🔒 1 сомонӣ" ? "🔒 1 сомонӣ — Смотреть" : label;
     watchBtn.addEventListener("click", function(){ handleWatchClick(featured.id); });
   }
   if (favBtn) {
@@ -933,16 +1255,19 @@ function renderMovieDetail() {
 
   // Paywall or Video
   if (!isPaid(movieId)) {
+    var pending = isPending(movieId);
     // Show paywall overlay
     wrapper.innerHTML =
       '<div class="paywall-overlay">' +
         '<div class="paywall-overlay__bg" style="background-image:url(\'' + movie.image + '\')"></div>' +
         '<div class="paywall-overlay__content">' +
-          '<span class="paywall-overlay__icon">🔒</span>' +
-          '<div class="paywall-overlay__title">Для просмотра необходима оплата</div>' +
+          '<span class="paywall-overlay__icon">' + (pending ? '⏳' : '🔒') + '</span>' +
+          '<div class="paywall-overlay__title">' + (pending ? 'Платеж на проверке' : 'Для просмотра необходима оплата') + '</div>' +
           '<span class="paywall-overlay__price">1 сомонӣ</span>' +
-          '<div class="paywall-overlay__sub">Разовый доступ · Мгновенно · Безопасно</div>' +
-          '<button id="paywallBtn" class="btn btn-primary" style="min-width:220px;">🎬 Оплатить и смотреть</button>' +
+          '<div class="paywall-overlay__sub">' + (pending ? 'Чек отправлен. Дождитесь подтверждения администратора.' : 'Разовый доступ · Мгновенно · Безопасно') + '</div>' +
+          (pending
+            ? '<button id="paywallBtn" class="btn btn-secondary" style="min-width:220px;">Обновить чек</button>'
+            : '<button id="paywallBtn" class="btn btn-primary" style="min-width:220px;">🎬 Оплатить и смотреть</button>') +
         '</div>' +
       '</div>';
 
@@ -1076,12 +1401,21 @@ function init() {
   setupNavigation();
   setupAuth();
   setupPaymentModal();
-  renderHero();
-  setupSearch();
-  showSkeletonAndRender();
-  renderMovieDetail();
-  renderFavorites();
-  refreshFavoriteButtons();
+  
+  // Sync core data BEFORE full render
+  Promise.all([
+    syncMoviesFromAPI(),
+    syncUsersFromAPI()
+  ]).then(function() {
+    loadAccessStateForCurrentUser().finally(function () {
+      renderHero();
+      setupSearch();
+      showSkeletonAndRender();
+      renderMovieDetail();
+      renderFavorites();
+      refreshFavoriteButtons();
+    });
+  });
 }
 
 document.addEventListener("DOMContentLoaded", function () {

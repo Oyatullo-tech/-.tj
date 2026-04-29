@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кино.тҷ — Просмотр БД</title>
+  <meta name="description" content="Мини интерфейс просмотра базы данных проекта Кино.тҷ.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../admin.css">
+  <link rel="stylesheet" href="panel.css">
+  <style>
+    .db-container {
+      width: min(calc(100% - 2rem), var(--container));
+      margin: 2rem auto 3rem;
+      padding: 0;
+    }
+    .db-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      gap: 1rem;
+    }
+    .db-tables {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .db-tables .btn {
+      font-size: 0.85rem;
+      padding: 0.5rem 0.9rem;
+      min-width: 6.5rem;
+    }
+    .db-tables .btn.active {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      color: #111;
+      border-color: transparent;
+      box-shadow: 0 10px 30px rgba(255,204,95,0.2);
+    }
+    .db-search {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1 1 320px;
+    }
+    .db-search input {
+      width: 100%;
+      padding: 0.55rem 0.85rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    .db-search input:focus {
+      outline: none;
+      border-color: var(--gold-border);
+      box-shadow: 0 0 0 3px rgba(240,180,41,0.12);
+    }
+    .db-count {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      white-space: nowrap;
+    }
+    .db-note {
+      margin: 0 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .admin-table-wrapper {
+      overflow: hidden;
+    }
+    .db-table-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding: 1rem 1rem 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .db-table-meta strong {
+      color: var(--text);
+    }
+    .admin-empty {
+      padding: 2rem;
+      text-align: center;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      display: none;
+    }
+    .db-footer {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body class="admin-body">
+  <header class="admin-header ap-topbar">
+    <div class="admin-header__inner">
+      <span class="ap-topbar__title">Просмотр базы данных</span>
+      <div class="admin-header__right">
+        <a class="btn btn-secondary btn-small" href="index.html">← Админка</a>
+        <button class="btn btn-primary btn-small" id="dbRefreshBtn" type="button">Обновить</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="ap-scroll">
+    <div class="db-container">
+      <div class="db-controls">
+        <div class="db-tables" role="tablist" aria-label="Таблицы базы данных">
+          <button class="btn btn-secondary btn-small db-table-btn active" data-table="users" type="button">users</button>
+          <button class="btn btn-secondary btn-small db-table-btn" data-table="movies" type="button">movies</button>
+          <button class="btn btn-secondary btn-small db-table-btn" data-table="transactions" type="button">transactions</button>
+          <button class="btn btn-secondary btn-small db-table-btn" data-table="history" type="button">watch_history</button>
+          <button class="btn btn-secondary btn-small db-table-btn" data-table="purchase_requests" type="button">purchase_requests</button>
+        </div>
+        <div class="db-search">
+          <input id="dbSearchInput" type="search" placeholder="Поиск данных..." autocomplete="off" aria-label="Поиск в таблице">
+          <span class="db-count" id="dbCount">0 записей</span>
+        </div>
+      </div>
+      <p class="db-note">Это мини-интерфейс просмотра данных как в phpMyAdmin. Данные берутся из реальной SQLite базы проекта.</p>
+      <div class="admin-table-wrapper">
+        <div class="db-table-meta">
+          <div>Текущая таблица: <strong id="dbTableName">users</strong></div>
+          <div>Строк: <strong id="dbRecordCount">0</strong></div>
+        </div>
+        <table class="admin-table" id="dbTable">
+          <thead>
+            <tr id="dbTableHead"></tr>
+          </thead>
+          <tbody id="dbTableBody"></tbody>
+        </table>
+        <div class="admin-empty" id="dbEmptyState">Записи не найдены</div>
+      </div>
+      <div class="db-footer">
+        <button class="btn btn-secondary btn-small" id="dbRefreshButton" type="button">Обновить данные</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="db.js"></script>
+</body>
+</html>

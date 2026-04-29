@@ -173,7 +173,7 @@ function initAdmin() {
 }
 
 function getTransactions() {
-  try { return JSON.parse(localStorage.getItem('kinoTJ_transactions') || '[]'); } catch(e) { return []; }
+  return Array.isArray(window.transactions) ? window.transactions : [];
 }
 
 function getMovies() {
@@ -181,23 +181,12 @@ function getMovies() {
 }
 
 function saveMovies(list) {
-  try {
-    localStorage.setItem("kinoTJ_movies", JSON.stringify(list));
-  } catch (e) {}
+  // Deprecated locally, we use API now
   window.movies = list;
-  // Обновляем число фильмов в статистике сразу
-  const el = document.getElementById("statMoviesCount");
-  if (el) el.textContent = String(list.length);
 }
 
 function getWatchHistory() {
-  try {
-    const s = localStorage.getItem(WATCH_HISTORY_KEY);
-    const p = s ? JSON.parse(s) : [];
-    return Array.isArray(p) ? p : [];
-  } catch (e) {
-    return [];
-  }
+  return Array.isArray(window.watchHistory) ? window.watchHistory : [];
 }
 
 function isAdminUser(u) {
@@ -206,14 +195,16 @@ function isAdminUser(u) {
 
 /* ── DB Helpers ── */
 function getAllUsers() {
-  try { const s = localStorage.getItem(USERS_DB_KEY); const p = s ? JSON.parse(s) : []; return Array.isArray(p) ? p : []; }
-  catch(e) { return []; }
+  return Array.isArray(currentUsers) ? currentUsers : [];
 }
-function saveAllUsers(users) { localStorage.setItem(USERS_DB_KEY, JSON.stringify(users)); }
+
+function saveAllUsers(users) { 
+  // Deprecated api equivalent
+  currentUsers = users;
+}
 
 function getPaidCount() {
-  try { const s = localStorage.getItem(PAID_KEY); const p = s ? JSON.parse(s) : []; return Array.isArray(p) ? p.length : 0; }
-  catch(e) { return 0; }
+  return getTransactions().length;
 }
 
 function normalizePhone(phone) {
@@ -325,7 +316,19 @@ function showDashboard() {
 
 
 /* ── Dashboard & Stats ── */
-function refreshData() {
+async function loadDataFromAPI() {
+    try {
+        const u = await fetch('/api/users'); currentUsers = await u.json();
+        const m = await fetch('/api/movies'); window.movies = await m.json();
+        const t = await fetch('/api/transactions'); window.transactions = await t.json();
+        const w = await fetch('/api/history'); window.watchHistory = await w.json();
+    } catch (e) {
+        console.error("Ошибка загрузки данных из БД", e);
+    }
+}
+
+async function refreshData() {
+  await loadDataFromAPI();
   currentUsers = getAllUsers();
   
   // Stats
@@ -588,7 +591,43 @@ function closeMovieModal() {
   if (modal) modal.style.display = "none";
 }
 
-function handleMovieSave(e) {
+async function saveMovieToAPI(moviePayload) {
+  const response = await fetch('/api/movies', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(moviePayload)
+  });
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (err) {
+    data = null;
+  }
+  if (!response.ok || (data && data.error)) {
+    throw new Error((data && data.error) || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function deleteMovieFromAPI(movieId) {
+  const response = await fetch('/api/movies/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: movieId })
+  });
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (err) {
+    data = null;
+  }
+  if (!response.ok || (data && data.error)) {
+    throw new Error((data && data.error) || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function handleMovieSave(e) {
   e.preventDefault();
   const idRaw = document.getElementById("movieEditId").value;
   const title = document.getElementById("movieTitleInput").value.trim();
@@ -612,33 +651,42 @@ function handleMovieSave(e) {
   const video = document.getElementById("movieVideoInput").value.trim();
   const description = document.getElementById("movieDescInput").value.trim();
 
-  let list = getMovies().slice();
+  const moviePayload = {
+    title,
+    genre,
+    rating,
+    year,
+    duration,
+    image,
+    video,
+    description
+  };
   if (idRaw) {
-    const id = parseInt(idRaw, 10);
-    const idx = list.findIndex(x => x.id === id);
-    if (idx === -1) { showToast("Филм ёфт нашуд", "error"); return; }
-    list[idx] = { ...list[idx], title, genre, rating, year, duration, image, video, description };
-  } else {
-    const maxId = list.reduce((a, m) => Math.max(a, Number(m.id) || 0), 0);
-    const id = maxId + 1;
-    list.push({ id, title, genre, rating, year, duration, image, video, description, featured: false });
+    moviePayload.id = parseInt(idRaw, 10);
   }
 
-  saveMovies(list);
-  closeMovieModal();
-  refreshData();
-  showToast("Филм нигоҳ дошта шуд", "success");
+  try {
+    await saveMovieToAPI(moviePayload);
+    closeMovieModal();
+    await refreshData();
+    showToast("Филм нигоҳ дошта шуд", "success");
+  } catch (err) {
+    showToast("Хатогӣ дар нигоҳдорӣ: " + (err && err.message ? err.message : "unknown"), "error");
+  }
 }
 
-function deleteMovie(movieId) {
+async function deleteMovie(movieId) {
   const list = getMovies();
   const m = list.find(x => x.id === movieId);
   if (!m) return;
   if (!confirm(`Нест кунем: «${m.title}» ?`)) return;
-  const next = list.filter(x => x.id !== movieId);
-  saveMovies(next);
-  refreshData();
-  showToast("Филм нест шуд", "success");
+  try {
+    await deleteMovieFromAPI(movieId);
+    await refreshData();
+    showToast("Филм нест шуд", "success");
+  } catch (err) {
+    showToast("Хатогӣ ҳангоми несткунӣ: " + (err && err.message ? err.message : "unknown"), "error");
+  }
 }
 
 function exportMoviesCSV() {

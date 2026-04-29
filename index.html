@@ -138,20 +138,25 @@
           <button class="payment-method-btn" data-method="alif">💳 Алиф</button>
           <button class="payment-method-btn" data-method="vasl">📱 Васл</button>
         </div>
+        <div class="form-group" style="margin-top:1rem;text-align:left;">
+          <label for="paymentReceiptInput">📎 Загрузите чек оплаты</label>
+          <input id="paymentReceiptInput" type="file" accept="image/*,.pdf" style="display:block;width:100%;margin-top:.45rem;">
+          <small id="paymentReceiptHint" class="payment-secure" style="display:block;margin-top:.4rem;">Поддерживаются фото или PDF чека.</small>
+        </div>
         <button id="confirmPayBtn" class="btn btn-primary btn-pay">Оплатить 1 сомонӣ →</button>
         <p class="payment-secure">🔒 Безопасная оплата · Мгновенный доступ</p>
       </div>
       <div id="paymentStep2" style="display:none;">
         <div class="payment-processing">
           <div class="payment-processing__spinner"></div>
-          <p>Обрабатываем оплату...</p>
+          <p>Отправляем заявку на одобрение...</p>
         </div>
       </div>
       <div id="paymentStep3" style="display:none;">
         <div class="payment-success">
           <span class="payment-success__icon">✅</span>
-          <h3>Оплата прошла!</h3>
-          <p>Переходим к просмотру...</p>
+          <h3>Заявка отправлена!</h3>
+          <p>Ожидайте подтверждения администратора.</p>
         </div>
       </div>
     </div>
